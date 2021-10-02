@@ -66,7 +66,20 @@ void await_drive(){
     
 }
 
-void turn_gyro(){}
+void turn_gyro(float angle){
+	float sgn = (angle < 0 ? 1 : -1);
+	float first_pos_gyro = get_gyro();
+	int turn_speed = 0.1 * tacho_get_max_speed( MOTOR_LEFT, 0 );
+	
+	tacho_set_speed_sp(MOTOR_RIGHT, -sgn * turn_speed);
+	tacho_set_speed_sp(MOTOR_LEFT, sgn * turn_speed);
+	
+	tacho_run_forever(MOTOR_BOTH);
+	
+	for(;sgn * fabs(get_gyro()) <= sgn * first_pos_gyro;){}
+	
+	tacho_stop( MOTOR_BOTH );
+}
 
 
 void turn_tacho(float deg){
