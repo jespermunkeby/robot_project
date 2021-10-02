@@ -12,8 +12,12 @@
 #define SENSOR_GYRO     IN4
 #define MOTOR_BOTH      ( MOTOR_LEFT | MOTOR_RIGHT ) /* Bitvis ELLER ger att båda motorerna styrs samtidigt */
 
+float CALIBRATION_DRIVE_DISTANCE = 2;
+float CALIBRATION_TRIM = 0;
+float CALIBRATION_TURN = 1;
+
 int init(){
-    if (! brick_init()) return ( 1 );
+    if (! brick_init()) return ( 0 );
     if (! sensor_is_plugged(SENSOR_TOUCH, LEGO_EV3_TOUCH)){
         printf("Could not connect to SENSOR_TOUCH at socket IN1. Check if plugged in correctly");
         return(0);
@@ -52,13 +56,39 @@ float get_gyro(){ //returns gyro reading in radians
     return sensor_get_value0(SENSOR_GYRO,0);
 }
 
-void drive(float dist){}
+void drive(float dist){
+    tacho_set_position_sp(MOTOR_BOTH,dist*CALIBRATION_DRIVE_DISTANCE);
+    tacho_set_speed_sp(MOTOR_BOTH, tacho_get_max_speed(MOTOR_LEFT,0)*0.5);
+    tacho_run_to_rel_pos(MOTOR_BOTH);
+}
 
-void turn(){}
+void await_drive(){
+    
+}
+
+void turn_gyro(){}
+
+
+void turn_tacho(float deg){
+    tacho_set_position_sp(MOTOR_LEFT,deg*CALIBRATION_TURN);
+    tacho_set_position_sp(MOTOR_RIGHT,-deg*CALIBRATION_TURN);
+    tacho_set_speed_sp(MOTOR_BOTH, tacho_get_max_speed(MOTOR_LEFT,0)*0.2);
+    tacho_run_to_rel_pos(MOTOR_BOTH);
+}
 
 void touch_align(){}
 
+
 void face_wall(){
+    int smallest_element_index(float arr[], int length){
+        int index = 0;
+        int i;
+        for( i = 1; i < length; i++){
+            if(arr[i] < arr[index])
+                index = i;
+        }
+        return index;
+    }
 
 }
 
@@ -70,11 +100,6 @@ void drop(){}
 
 int main(){
     if (!init()) return ( 1 ); 
-    
-    while(true){
-        printf("\e[1;1H\e[2J");
-        printf("distance: %f \n", get_distance());
-        printf("gyro: %f \n", get_gyro());
-        printf("touch: %d \n", get_touch());
-    }
+    turn_tacho(360*10);
+    sleep(60);
 }
