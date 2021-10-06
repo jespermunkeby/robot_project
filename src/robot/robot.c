@@ -135,7 +135,7 @@ void touch_align(){
 void find_wall(){    
     tacho_reset(MOTOR_BOTH);
 
-    float speed = tacho_get_max_speed(MOTOR_LEFT,0) * 0.03;
+    float speed = tacho_get_max_speed(MOTOR_LEFT,0) * 0.1;
 
     float gyro_start = get_gyro();
 
@@ -160,10 +160,15 @@ void find_wall(){
         }
         
     }
-    
-    turn_gyro(closest_postition_gyro - gyro_start);
-}
 
+    int delta_gyro = closest_postition_gyro - gyro_start;
+
+    if(delta_gyro > 180){
+        delta_gyro = delta_gyro - 360; 
+    }
+
+    turn_gyro(delta_gyro);
+}
 
 void follow_wall(){
     tacho_reset(MOTOR_BOTH);
