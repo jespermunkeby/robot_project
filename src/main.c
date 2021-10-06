@@ -56,5 +56,5 @@ void mission_4(){
 }
 
 int main{
-   if (! brick_init()) return ( 0 ); 
- }
+    if (!init()) return ( 1 ); 
+}
