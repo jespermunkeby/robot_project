@@ -213,11 +213,11 @@ void follow_wall_pid(float kp, float ki, float kd){
 
     for (;;){
         
-        float new_error = (get_distance() - target_distance);
+        float new_error = ((get_distance() - target_distance)/target_distance);
 
-        proportional = (new_error)*kp;
-        integral = (integral+new_error)*ki;
-        derivative = (proportional - new_error)*kd;
+        proportional = (new_error);
+        integral = (integral+new_error);
+        derivative = (proportional - new_error);
 
         float steer = proportional*kp + integral*ki + derivative*kd;
         steer = steer < 1 ? steer : 1;
