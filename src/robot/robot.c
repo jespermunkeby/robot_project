@@ -41,11 +41,11 @@ int init(){
 }
 
 
-float get_distance(){ //returns distance read from ultrasonic sensors in mm
+float get_distance(){ /*returns distance read from ultrasonic sensors in mm*/
     return sensor_get_value0(SENSOR_DISTANCE,0);
 }
 
-bool get_touch(){ //returns true if toch sensor is pressed, false if not
+bool get_touch(){ /*returns true if toch sensor is pressed, false if notm*/
     if(sensor_get_value0(SENSOR_TOUCH,0)){
         return true;
     } else {
@@ -53,7 +53,7 @@ bool get_touch(){ //returns true if toch sensor is pressed, false if not
     }    
 }
 
-float get_gyro(){ //returns gyro reading in degrees
+float get_gyro(){ /*returns gyro reading in degrees*/
     return sensor_get_value0(SENSOR_GYRO,0);
 }
 
@@ -103,8 +103,7 @@ void touch_align(){
 
     tacho_run_forever(MOTOR_BOTH);
 
-    while(!get_touch()){
-    } 
+    while(!get_touch()){} 
 
     tacho_stop(MOTOR_BOTH);
     
@@ -114,8 +113,6 @@ void touch_align(){
     tacho_run_forever(MOTOR_BOTH);
     
     sleep(2);
-
-    //tacho_stop(MOTOR_BOTH);
 
     tacho_set_speed_sp(MOTOR_LEFT, max_speed * 0.4); 
     tacho_set_speed_sp(MOTOR_RIGHT, max_speed * 0.6);
@@ -135,7 +132,7 @@ void touch_align(){
 void find_wall(){    
     tacho_reset(MOTOR_BOTH);
 
-    float speed = tacho_get_max_speed(MOTOR_LEFT,0) * 0.1;
+    float speed = tacho_get_max_speed(MOTOR_LEFT,0) * 0.03;
 
     float gyro_start = get_gyro();
 
@@ -160,15 +157,10 @@ void find_wall(){
         }
         
     }
-
-    int delta_gyro = closest_postition_gyro - gyro_start;
-
-    if(delta_gyro > 180){
-        delta_gyro = delta_gyro - 360; 
-    }
-
-    turn_gyro(delta_gyro);
+    
+    turn_gyro(closest_postition_gyro - gyro_start);
 }
+
 
 void follow_wall(){
     tacho_reset(MOTOR_BOTH);
@@ -203,11 +195,11 @@ void follow_wall(){
     }
 }
 
-void follow_wall_pid(float kp, float ki, float kd){
+void follow_wall_pid(float kp, float ki, float kd, float dist){
     tacho_reset(MOTOR_BOTH);
 
     float target_distance = get_distance();
-    float fundamental_speed = tacho_get_max_speed(MOTOR_LEFT,0)*0.2;
+    float fundamental_speed = tacho_get_max_speed(MOTOR_LEFT,0)*0.4;
 
     tacho_set_speed_sp(MOTOR_BOTH, fundamental_speed);
     tacho_run_forever(MOTOR_BOTH);
@@ -216,13 +208,15 @@ void follow_wall_pid(float kp, float ki, float kd){
     float integral = 0;
     float derivative = 0;
 
+    float start_tacho = (tacho_get_position(MOTOR_LEFT, 0) + tacho_get_position(MOTOR_RIGHT, 0))/2;
     for (;;){
         
-        float new_error = ((get_distance() - target_distance)/target_distance);
+        float new_error = 0.01*(target_distance - get_distance());
 
-        proportional = (new_error);
-        integral = (integral+new_error);
-        derivative = (proportional - new_error);
+        derivative = (new_error-proportional);
+        proportional = new_error;
+        integral = integral + new_error;
+        
 
         float steer = proportional*kp + integral*ki + derivative*kd;
         steer = steer < 1 ? steer : 1;
@@ -232,10 +226,17 @@ void follow_wall_pid(float kp, float ki, float kd){
         tacho_set_speed_sp(MOTOR_RIGHT, fundamental_speed - fundamental_speed * steer);
 
         tacho_run_forever(MOTOR_BOTH);
+
+        printf("\e[1;1H\e[2J");
         printf("p: %f\n", proportional);
         printf("i: %f\n", integral);
         printf("d: %f\n", derivative);
         printf("steer: %f\n\n", steer);
+
+        if((tacho_get_position(MOTOR_LEFT, 0) + tacho_get_position(MOTOR_RIGHT, 0))/2 > start_tacho + dist*CALIBRATION_DRIVE_DISTANCE){
+            break;
+        }
+
     }
 }
 
@@ -257,6 +258,6 @@ void drop(){
 int main(){
     if (!init()) return ( 1 ); 
 
-    follow_wall_pid(0.05,0.05,0.05);
+    follow_wall_pid(0.05,0,0.5,1000);
 
 }
