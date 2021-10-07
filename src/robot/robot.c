@@ -205,7 +205,8 @@ void follow_wall_pid(float kp, float ki, float kd, float dist){
     tacho_reset(MOTOR_BOTH);
 
     float target_distance = get_distance();
-    float fundamental_speed = tacho_get_max_speed(MOTOR_LEFT,0)*0.4;
+    float sgn = (dist < 0)? -1 : 1;
+    float fundamental_speed = tacho_get_max_speed(MOTOR_LEFT,0)*0.4*sgn;
 
     tacho_set_speed_sp(MOTOR_BOTH, fundamental_speed);
     tacho_run_forever(MOTOR_BOTH);
@@ -239,11 +240,12 @@ void follow_wall_pid(float kp, float ki, float kd, float dist){
         printf("d: %f\n", derivative);
         printf("steer: %f\n\n", steer);
 
-        if((tacho_get_position(MOTOR_LEFT, 0) + tacho_get_position(MOTOR_RIGHT, 0))/2 > start_tacho + dist*CALIBRATION_DRIVE_DISTANCE){
+        if(fabs((tacho_get_position(MOTOR_LEFT, 0) + tacho_get_position(MOTOR_RIGHT, 0))/2) > (start_tacho + fabs(dist*CALIBRATION_DRIVE_DISTANCE))){
             break;
         }
 
     }
+    tacho_stop(MOTOR_BOTH);
 }
 
 void drop(){
