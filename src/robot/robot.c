@@ -158,8 +158,14 @@ void find_wall(){
         
     }
     
-    turn_gyro(closest_postition_gyro - gyro_start);
+    int delta_gyro = closest_postition_gyro - gyro_start;
+
+    if(delta_gyro > 180){
+        delta_gyro = delta_gyro - 360; 
+    }
+    turn_gyro(delta_gyro);
 }
+
 
 
 void follow_wall(){
