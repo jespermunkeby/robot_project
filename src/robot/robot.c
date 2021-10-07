@@ -8,9 +8,10 @@
 #define MOTOR_LEFT      OUTB
 #define MOTOR_FORK      OUTC
 #define SENSOR_TOUCH    IN1
-#define SENSOR_DISTANCE IN2
+#define SENSOR_GYRO     IN2
 #define SENSOR_COLOR    IN3
-#define SENSOR_GYRO     IN4
+#define SENSOR_DISTANCE IN4
+
 #define MOTOR_BOTH      ( MOTOR_LEFT | MOTOR_RIGHT ) /* Bitvis ELLER ger att båda motorerna styrs samtidigt */
 
 float CALIBRATION_DRIVE_DISTANCE = 2;
@@ -266,6 +267,5 @@ void drop(){
 int main(){
     if (!init()) return ( 1 ); 
 
-    follow_wall_pid(0.05,0,0.5,1000);
 
 }
