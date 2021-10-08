@@ -3,14 +3,16 @@
 #include <unistd.h>
 #include <stdbool.h>
 #include <math.h>
+#include "robot.h"
 
 #define MOTOR_RIGHT     OUTA
 #define MOTOR_LEFT      OUTB
 #define MOTOR_FORK      OUTC
 #define SENSOR_TOUCH    IN1
-#define SENSOR_DISTANCE IN2
+#define SENSOR_GYRO     IN2
 #define SENSOR_COLOR    IN3
-#define SENSOR_GYRO     IN4
+#define SENSOR_DISTANCE IN4
+
 #define MOTOR_BOTH      ( MOTOR_LEFT | MOTOR_RIGHT ) /* Bitvis ELLER ger att båda motorerna styrs samtidigt */
 
 float CALIBRATION_DRIVE_DISTANCE = 2;
@@ -60,7 +62,7 @@ float get_gyro(){ /*returns gyro reading in degrees*/
 void drive(float dist){
     tacho_reset(MOTOR_BOTH);
     
-    float speed = tacho_get_max_speed(MOTOR_LEFT,0)*0.5;
+    float speed = tacho_get_max_speed(MOTOR_LEFT,0)*0.3;
 
 
     tacho_set_ramp_up_sp(MOTOR_BOTH, 3000);
@@ -99,7 +101,7 @@ void touch_align(){
     tacho_reset(MOTOR_BOTH);
     int max_speed = tacho_get_max_speed( MOTOR_LEFT, 0 ); 
     
-    tacho_set_speed_sp(MOTOR_BOTH, max_speed * 0.5); 
+    tacho_set_speed_sp(MOTOR_BOTH, max_speed * 0.3); 
 
     tacho_run_forever(MOTOR_BOTH);
 
@@ -107,15 +109,13 @@ void touch_align(){
 
     tacho_stop(MOTOR_BOTH);
     
-    tacho_set_speed_sp(MOTOR_LEFT, max_speed * 0.6); 
-    tacho_set_speed_sp(MOTOR_RIGHT, max_speed * 0.4);
+    tacho_set_speed_sp(MOTOR_LEFT, max_speed * 0.4); 
+    tacho_set_speed_sp(MOTOR_RIGHT, max_speed * 0.2);
 
     tacho_run_forever(MOTOR_BOTH);
     
-    sleep(2);
-
-    tacho_set_speed_sp(MOTOR_LEFT, max_speed * 0.4); 
-    tacho_set_speed_sp(MOTOR_RIGHT, max_speed * 0.6);
+    tacho_set_speed_sp(MOTOR_LEFT, max_speed * 0.2); 
+    tacho_set_speed_sp(MOTOR_RIGHT, max_speed * 0.4);
     tacho_run_forever(MOTOR_BOTH);
 
     sleep(2);
@@ -155,7 +155,6 @@ void find_wall(){
             closest_postition_gyro = get_gyro();
             closest_distance_wall = test_dist;
         }
-        
     }
     
     int delta_gyro = closest_postition_gyro - gyro_start;
@@ -166,46 +165,12 @@ void find_wall(){
     turn_gyro(delta_gyro);
 }
 
-
-
-void follow_wall(){
-    tacho_reset(MOTOR_BOTH);
-
-    float goal_distance = get_distance();
-    float fundamental_speed = tacho_get_max_speed(MOTOR_LEFT,0)*0.2;
-
-    tacho_set_ramp_up_sp(MOTOR_BOTH, 5000);
-    tacho_set_ramp_down_sp(MOTOR_BOTH, 5000);
-
-    tacho_set_speed_sp(MOTOR_BOTH, fundamental_speed);
-    tacho_run_forever(MOTOR_BOTH);
-
-    for (;;){
-        float current_distance = get_distance();
-        float steer = powf((current_distance - goal_distance)*0.03, 2); 
-        steer = (steer < 1) ? steer : 1; /*clamp below or eq to 1*/
-        float steer_amount = 0.3;
-
-        if(current_distance < goal_distance){
-            printf("RIGHT\n");
-            tacho_set_speed_sp(MOTOR_LEFT, fundamental_speed + fundamental_speed * steer_amount * steer);
-            tacho_set_speed_sp(MOTOR_RIGHT, fundamental_speed - fundamental_speed * steer_amount * steer);
-        } else {
-            printf("LEFT\n");
-            tacho_set_speed_sp(MOTOR_RIGHT, fundamental_speed + steer_amount*fundamental_speed*steer_amount*steer);
-            tacho_set_speed_sp(MOTOR_LEFT, fundamental_speed - steer_amount*fundamental_speed*steer_amount*steer);
-        }
-
-        tacho_run_forever(MOTOR_BOTH);
-        printf("%f\n\n", steer);
-    }
-}
-
 void follow_wall_pid(float kp, float ki, float kd, float dist){
     tacho_reset(MOTOR_BOTH);
 
     float target_distance = get_distance();
-    float fundamental_speed = tacho_get_max_speed(MOTOR_LEFT,0)*0.4;
+    float sgn = (dist < 0)? -1 : 1;
+    float fundamental_speed = tacho_get_max_speed(MOTOR_LEFT,0)*0.4*sgn;
 
     tacho_set_speed_sp(MOTOR_BOTH, fundamental_speed);
     tacho_run_forever(MOTOR_BOTH);
@@ -239,12 +204,14 @@ void follow_wall_pid(float kp, float ki, float kd, float dist){
         printf("d: %f\n", derivative);
         printf("steer: %f\n\n", steer);
 
-        if((tacho_get_position(MOTOR_LEFT, 0) + tacho_get_position(MOTOR_RIGHT, 0))/2 > start_tacho + dist*CALIBRATION_DRIVE_DISTANCE){
+        if(fabs((tacho_get_position(MOTOR_LEFT, 0) + tacho_get_position(MOTOR_RIGHT, 0))/2) > (start_tacho + fabs(dist*CALIBRATION_DRIVE_DISTANCE))){
             break;
         }
 
     }
+    tacho_stop(MOTOR_BOTH);
 }
+
 
 void drop(){
     tacho_reset(MOTOR_FORK);
@@ -263,7 +230,5 @@ void drop(){
 
 int main(){
     if (!init()) return ( 1 ); 
-
-    follow_wall_pid(0.05,0,0.5,1000);
 
 }
