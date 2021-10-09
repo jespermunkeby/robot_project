@@ -3,7 +3,6 @@
 #include <unistd.h>
 #include <stdbool.h>
 #include <math.h>
-#include "robot.h"
 
 #define MOTOR_RIGHT     OUTA
 #define MOTOR_LEFT      OUTB
@@ -79,7 +78,7 @@ void drive(float dist){
     for(;tacho_is_running(MOTOR_BOTH);){}
 }
 
-void turn_gyro(float deg){
+void turn(float deg){
     tacho_reset(MOTOR_BOTH);
 
     float sgn = (deg < 0)? -1 : 1;
@@ -165,12 +164,16 @@ void find_wall(){
     turn_gyro(delta_gyro);
 }
 
-void follow_wall_pid(float kp, float ki, float kd, float dist){
+void follow_wall_pid(float dist){
+    float kp = 0.06;
+    float ki = 0;
+    float kd = 1;
+
     tacho_reset(MOTOR_BOTH);
 
     float target_distance = get_distance();
     float sgn = (dist < 0)? -1 : 1;
-    float fundamental_speed = tacho_get_max_speed(MOTOR_LEFT,0)*0.4*sgn;
+    float fundamental_speed = tacho_get_max_speed(MOTOR_LEFT,0)*0.35*sgn;
 
     tacho_set_speed_sp(MOTOR_BOTH, fundamental_speed);
     tacho_run_forever(MOTOR_BOTH);
@@ -230,5 +233,4 @@ void drop(){
 
 int main(){
     if (!init()) return ( 1 ); 
-
 }
