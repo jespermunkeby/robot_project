@@ -61,6 +61,10 @@ float get_gyro(){ /*returns gyro reading in degrees*/
     return sensor_get_value0(SENSOR_GYRO,0);
 }
 
+float get_gyro_speed(){ /*returns gyro reading of speed in degreed/second */
+    return sensor_get_value1(SENSOR_GYRO,0);
+}
+
 
 void drive(float dist){
 	printf("Starts drive\n");
@@ -134,14 +138,14 @@ void turn_wiggle(float deg){
 
             tacho_run_forever(MOTOR_BOTH);
             sleep(0.1);
-            tacho_stop()
+            tacho_stop(MOTOR_BOTH);
 
             tacho_set_speed_sp(MOTOR_LEFT, sgn*max_speed*0.7);
             tacho_set_speed_sp(MOTOR_RIGHT, -sgn*max_speed*0.7);
 
             tacho_run_forever(MOTOR_BOTH);
             sleep(0.2);
-            tacho_stop()
+            tacho_stop(MOTOR_BOTH);
 
             tacho_set_speed_sp(MOTOR_LEFT, sgn*speed);
             tacho_set_speed_sp(MOTOR_RIGHT, -sgn*speed);
@@ -257,7 +261,7 @@ void find_wall(){
 
     if(delta_gyro > 180){
         delta_gyro = delta_gyro - 360;
-		printf("Turns %f degrees counter clockwise\n", delta_gyry);
+		printf("Turns %f degrees counter clockwise\n", delta_gyro);
     }
 	else
 		printf("Turn %f degrees clockwise\n", delta_gyro);
