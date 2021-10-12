@@ -38,7 +38,7 @@ int init(){
         return(0);
     }
 
-    gyro_set_mode_gyro_g
+    gyro_set_mode_gyro_g_and_a(SENSOR_GYRO);
 
     return(1);
 
@@ -63,20 +63,26 @@ float get_gyro(){ /*returns gyro reading in degrees*/
 
 
 void drive(float dist){
+	printf("Starts drive\n");
+	printf("Resets motors\n");
     tacho_reset(MOTOR_BOTH);
     
     float speed = tacho_get_max_speed(MOTOR_LEFT,0)*0.2;
-
+	
     tacho_set_position_sp(MOTOR_BOTH,dist*CALIBRATION_DRIVE_DISTANCE);
 
     tacho_set_speed_sp(MOTOR_BOTH, speed);
 
     tacho_run_to_rel_pos(MOTOR_BOTH);
-
+	
+	printf("Start motor\n");
     for(;tacho_is_running(MOTOR_BOTH);){}
+	printf("End drive\n");
 }
 
 void turn(float deg){
+	printf("Starts turn\n");
+	printf("Reset motors\n");
     tacho_reset(MOTOR_BOTH);
 
     float sgn = (deg < 0)? -1 : 1;
@@ -88,17 +94,69 @@ void turn(float deg){
 
     tacho_set_speed_sp(MOTOR_LEFT, sgn*speed);
     tacho_set_speed_sp(MOTOR_RIGHT, -sgn*speed);
-
+	
+	printf("Starts turning\n");
     tacho_run_forever(MOTOR_BOTH);
 
     for( ; sgn*get_gyro() < sgn*(gyro_start+deg) ; ){
-        printf("\e[1;1H\e[2J");
-        printf(" %f < %f \n\n", sgn*get_gyro(), sgn*(gyro_start+deg));
+    }
+	printf("End turn\n");
+}
+
+void turn_wiggle(float deg){
+    printf("Starts turn_wiggle\n");
+	printf("Reset motors\n");
+    tacho_reset(MOTOR_BOTH);
+
+    float sgn = (deg < 0)? -1 : 1;
+    float max_speed = tacho_get_max_speed(MOTOR_LEFT,0);
+    float speed = max_speed*0.05;
+
+    float gyro_start = get_gyro();
+
+    tacho_set_stop_action_hold(MOTOR_BOTH);
+
+    tacho_set_speed_sp(MOTOR_LEFT, sgn*speed);
+    tacho_set_speed_sp(MOTOR_RIGHT, -sgn*speed);
+
+    tacho_run_forever(MOTOR_BOTH);
+
+    float wiggle_thresh = 1;
+
+    for( ; sgn*get_gyro() < sgn*(gyro_start+deg) ; ){
+        
+        if (get_gyro_speed() <= wiggle_thresh){
+            /*wiggle*/
+            printf("wiggle\n");
+
+            tacho_set_speed_sp(MOTOR_LEFT, -sgn*max_speed*0.7);
+            tacho_set_speed_sp(MOTOR_RIGHT, sgn*max_speed*0.7);
+
+            tacho_run_forever(MOTOR_BOTH);
+            sleep(0.1);
+            tacho_stop()
+
+            tacho_set_speed_sp(MOTOR_LEFT, sgn*max_speed*0.7);
+            tacho_set_speed_sp(MOTOR_RIGHT, -sgn*max_speed*0.7);
+
+            tacho_run_forever(MOTOR_BOTH);
+            sleep(0.2);
+            tacho_stop()
+
+            tacho_set_speed_sp(MOTOR_LEFT, sgn*speed);
+            tacho_set_speed_sp(MOTOR_RIGHT, -sgn*speed);
+
+            tacho_run_forever(MOTOR_BOTH);
+
+        }
     }   
 }
 
 void drop_rel_pos(){
+	printf("Starts drop_rel_pos \n");
+	printf("Resets motors\n");
     tacho_reset(MOTOR_FORK);
+	
     int max_speed_fork = tacho_get_max_speed( MOTOR_FORK, 0 ) * 0.6;    
     tacho_set_stop_action_hold(MOTOR_FORK);
  
@@ -106,49 +164,66 @@ void drop_rel_pos(){
     tacho_set_position_sp(MOTOR_FORK, 250);
     tacho_set_speed_sp(MOTOR_FORK, max_speed_fork);
     tacho_run_to_rel_pos(MOTOR_FORK);  
-
+	
+	printf("Sleep 1 second\n");
     sleep(1);
-
+	
+	printf("Drops...\n");
     tacho_set_position_sp(MOTOR_FORK, -250);    
     tacho_set_speed_sp(MOTOR_FORK, max_speed_fork);
     tacho_run_to_rel_pos(MOTOR_FORK);
+	printf("End drop rel pos\n");
 }
 
 void touch_align(){
+	printf("Start touch align\n");
+	printf("Resets motors\n");
     tacho_reset(MOTOR_BOTH);
     int max_speed = tacho_get_max_speed( MOTOR_LEFT, 0 ); 
     
     tacho_set_speed_sp(MOTOR_BOTH, max_speed * 0.3); 
-
+	
+	printf("Starts motors\n");
     tacho_run_forever(MOTOR_BOTH);
 
     while(!get_touch()){} 
 
+	printf("Found touch, stop motors\n");
     tacho_stop(MOTOR_BOTH);
     
     tacho_set_speed_sp(MOTOR_LEFT, max_speed * 0.4); 
     tacho_set_speed_sp(MOTOR_RIGHT, max_speed * 0.1);
-
+	
+	printf("Run motors left faster\n");
     tacho_run_forever(MOTOR_BOTH);
 
+	printf("Sleeps 2 seconds\n");
     sleep(2);
     
+	printf("Run motor right faster\n");
     tacho_set_speed_sp(MOTOR_LEFT, max_speed * 0.1); 
     tacho_set_speed_sp(MOTOR_RIGHT, max_speed * 0.4);
     tacho_run_forever(MOTOR_BOTH);
-
+	
+	printf("Sleeps 2 seconds\n");
     sleep(2);
 
+	printf("Run both motors same speed\n");
     tacho_set_speed_sp(MOTOR_BOTH, max_speed * 0.5); 
     tacho_run_forever(MOTOR_BOTH);
-
+	
+	printf("Sleep 2 seconds\n");
     sleep(1);
 
+	printf("Stops motors\n");
     tacho_stop(MOTOR_BOTH);
+	printf("End touch align\n");
 }
 
 
-void find_wall(){    
+void find_wall(){ 
+	printf("Start find wall\n");
+	printf("Resets motors\n");
     tacho_reset(MOTOR_BOTH);
 
     float speed = tacho_get_max_speed(MOTOR_LEFT,0) * 0.05;
@@ -159,7 +234,8 @@ void find_wall(){
 
     tacho_set_speed_sp(MOTOR_LEFT, speed);
     tacho_set_speed_sp(MOTOR_RIGHT, -speed);
-
+	
+	printf("Turn motors\n");
     tacho_run_forever(MOTOR_BOTH);
 
     float closest_postition_gyro;
@@ -173,28 +249,37 @@ void find_wall(){
         if(test_dist < closest_distance_wall){
             closest_postition_gyro = get_gyro();
             closest_distance_wall = test_dist;
+			printf("Shortest distance: %f\nSmallest angle: %f\n", closest_distance_wall, closest_postition_gyro);
         }
     }
     
     int delta_gyro = closest_postition_gyro - gyro_start;
 
     if(delta_gyro > 180){
-        delta_gyro = delta_gyro - 360; 
+        delta_gyro = delta_gyro - 360;
+		printf("Turns %f degrees counter clockwise\n", delta_gyry);
     }
+	else
+		printf("Turn %f degrees clockwise\n", delta_gyro);
+	
     turn(delta_gyro);
+	printf("Ends find wall\n");
 }
 
 void follow_wall_pid(float dist){
+	printf("Starts follow wall\n");
     float kp = 0.06;
     float ki = 0;
     float kd = 1;
-
+	
+	printf("Resets motor\n");
     tacho_reset(MOTOR_BOTH);
 
     float target_distance = get_distance();
     float sgn = (dist < 0)? -1 : 1;
     float fundamental_speed = tacho_get_max_speed(MOTOR_LEFT,0)*0.35*sgn;
 
+	printf("Starts motors\n");
     tacho_set_speed_sp(MOTOR_BOTH, fundamental_speed);
     tacho_run_forever(MOTOR_BOTH);
 
@@ -221,34 +306,36 @@ void follow_wall_pid(float dist){
 
         tacho_run_forever(MOTOR_BOTH);
 
-        printf("\e[1;1H\e[2J");
-        printf("p: %f\n", proportional);
-        printf("i: %f\n", integral);
-        printf("d: %f\n", derivative);
-        printf("steer: %f\n\n", steer);
-
         if(fabs((tacho_get_position(MOTOR_LEFT, 0) + tacho_get_position(MOTOR_RIGHT, 0))/2) > (start_tacho + fabs(dist*CALIBRATION_DRIVE_DISTANCE))){
             break;
         }
 
     }
     tacho_stop(MOTOR_BOTH);
+	printf("Ends follow wall\n");
 }
 
 
 void drop(){
+	printf("Start follow wall\n");
+	printf("Resets motors\n");
     tacho_reset(MOTOR_FORK);
     int max_speed_fork = tacho_get_max_speed( MOTOR_FORK, 0 );    
 
+	printf("Drops...\n");
     tacho_set_speed_sp(MOTOR_FORK, max_speed_fork * 0.3);
     tacho_run_forever(MOTOR_FORK);
+	printf("Sleep 1 second\n");
     sleep(1);
-
+	
+	printf("Returns...\n");
     tacho_set_speed_sp(MOTOR_FORK, max_speed_fork * -0.3);
     tacho_run_forever(MOTOR_FORK);
-    sleep(1);
+    printf("Sleep 1 second\n");
+	sleep(1);
     
     tacho_stop( MOTOR_FORK );
+	printf("Ends drop\n");
 }
 
 /*--------*/
@@ -365,4 +452,3 @@ int main(){
     mission_3();
     mission_4();
 }
-
